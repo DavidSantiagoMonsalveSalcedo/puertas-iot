@@ -1,6 +1,6 @@
 // 🔑 Configuración Supabase
-const SUPABASE_URL = "https://kjauubnikapfyfjhplye.supabase.co";
-const SUPABASE_KEY = "TU_SUPABASE_KEY";
+const SUPABASE_URL = "https://kjauubnikapfyfjhplye.supabase.co"; 
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqYXV1Ym5pa2FwZnlmamhwbHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODA1OTEsImV4cCI6MjA3NDk1NjU5MX0.uJPC3W2GVSXqc6f_AGtUs5TbJGGfhAurDIeS0MsZrUY";
 const headers = {
   "apikey": SUPABASE_KEY,
   "Authorization": `Bearer ${SUPABASE_KEY}`,
