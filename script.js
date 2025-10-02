@@ -1,6 +1,6 @@
 // 🔑 Configuración Supabase
 const SUPABASE_URL = "https://kjauubnikapfyfjhplye.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqYXV1Ym5pa2FwZnlmamhwbHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODA1OTEsImV4cCI6MjA3NDk1NjU5MX0.uJPC3W2GVSXqc6f_AGtUs5TbJGGfhAurDIeS0MsZrUY"; // truncado
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqYXV1Ym5pa2FwZnlmamhwbHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODA1OTEsImV4cCI6MjA3NDk1NjU5MX0.uJPC3W2GVSXqc6f_AGtUs5TbJGGfhAurDIeS0MsZrUY";
 const headers = {
   "apikey": SUPABASE_KEY,
   "Authorization": `Bearer ${SUPABASE_KEY}`,
@@ -10,10 +10,12 @@ const headers = {
 // Variables globales
 let currentUser = null;
 
-// 🚀 Cargar usuarios y puertas al inicio
+// 🚀 Cargar usuarios, puertas y logs al inicio
 window.onload = () => {
   fetchUsers();
   fetchDoors();
+  fetchLogs();
+  setInterval(fetchLogs, 5000); // refrescar cada 5 segundos
 };
 
 // =============================
@@ -117,7 +119,33 @@ async function toggleDoor(id, doorDiv) {
     estadoStrong.textContent = newStatus;
     doorDiv.querySelector("button").textContent = newStatus === "cerrada" ? "Abrir" : "Cerrar";
 
+    // refrescar historial
+    fetchLogs();
+
   } catch (error) {
     console.error("Error al actualizar la puerta:", error);
+  }
+}
+
+// =============================
+// 📌 Histórico de accesos (tabla)
+// =============================
+async function fetchLogs() {
+  try {
+    // Traer solo los logs y las relaciones correctas
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=id,action,created_at,user_id,door_id,users!inner(username),doors!inner(name)&order=created_at.desc`, { headers });
+    const logs = await res.json();
+
+    const logBody = document.getElementById("log-body");
+    logBody.innerHTML = logs.map(log => `
+      <tr>
+        <td>${new Date(log.created_at).toLocaleString()}</td>
+        <td>${log.users?.username || "Desconocido"}</td>
+        <td>${log.action}</td>
+        <td>${log.doors?.name || "?"}</td>
+      </tr>
+    `).join("");
+  } catch (error) {
+    console.error("Error al cargar logs:", error);
   }
 }
