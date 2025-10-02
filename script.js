@@ -14,7 +14,7 @@ window.onload = () => {
   fetchUsers();
   fetchDoors();
   fetchLogs();
-  setInterval(fetchLogs, 5000); // refrescar cada 5 segundos
+  setInterval(fetchLogs, 5000); // refrescar historial cada 5 segundos
 };
 
 // =============================
@@ -29,8 +29,8 @@ async function fetchUsers() {
     userSelect.innerHTML = "";
     users.forEach(user => {
       const option = document.createElement("option");
-      option.value = user.id;
-      option.textContent = `${user.username} (${user.role})`;
+      option.value = user.id; // UUID
+      option.textContent = user.username;
       userSelect.appendChild(option);
     });
 
@@ -39,7 +39,6 @@ async function fetchUsers() {
     userSelect.addEventListener("change", (e) => {
       currentUser = e.target.value;
     });
-
   } catch (error) {
     console.error("Error al cargar usuarios:", error);
   }
@@ -76,7 +75,6 @@ function renderDoors(doors) {
     `;
 
     div.querySelector("button").addEventListener("click", () => toggleDoor(door.id, div));
-
     container.appendChild(div);
   });
 }
@@ -102,13 +100,13 @@ async function toggleDoor(doorId, doorDiv) {
       body: JSON.stringify({ status: newStatus })
     });
 
-    // Guardar log con UUID
+    // Guardar log
     await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        door_id: doorId,             // Número o string según tu tabla doors
-        user_id: currentUser,        // <--- Enviar UUID directamente, sin Number()
+        door_id: doorId,         // UUID
+        user_id: currentUser,    // UUID
         action: newStatus === "abierta" ? "abrir" : "cerrar"
       })
     });
@@ -119,35 +117,33 @@ async function toggleDoor(doorId, doorDiv) {
 
     // Refrescar historial
     fetchLogs();
-
   } catch (error) {
     console.error("Error al actualizar puerta o guardar log:", error);
   }
 }
 
 // =============================
-// Historial de accesos (sin joins)
+// Historial de accesos
 // =============================
 async function fetchLogs() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*&order=created_at.desc&limit=20`, { headers });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*&order=timestamp.desc&limit=20`, { headers });
     const logs = await res.json();
 
     if (!Array.isArray(logs)) {
-      console.error("Respuesta inesperada de Supabase:", logs);
+      console.error("Respuesta inesperada:", logs);
       return;
     }
 
     const logBody = document.getElementById("log-body");
     logBody.innerHTML = logs.map(log => `
       <tr>
-        <td>${new Date(log.created_at).toLocaleString()}</td>
+        <td>${new Date(log.timestamp).toLocaleString()}</td>
         <td>${log.user_id}</td>
         <td>${log.action}</td>
         <td>${log.door_id}</td>
       </tr>
     `).join("");
-
   } catch (error) {
     console.error("Error al cargar logs:", error);
   }
