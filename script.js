@@ -129,17 +129,23 @@ async function toggleDoor(doorId, doorName, doorDiv) {
 // =============================
 async function fetchLogs() {
   try {
-    // Traer últimos 20 logs
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*,users!inner(username),doors!inner(name)&order=created_at.desc&limit=20`, { headers });
+    // Traer los últimos 20 logs sin join
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*&order=created_at.desc&limit=20`, { headers });
     const logs = await res.json();
+
+    // logs puede ser array, si da error muestra vacío
+    if (!Array.isArray(logs)) {
+      console.error("Respuesta inesperada de Supabase:", logs);
+      return;
+    }
 
     const logBody = document.getElementById("log-body");
     logBody.innerHTML = logs.map(log => `
       <tr>
         <td>${new Date(log.created_at).toLocaleString()}</td>
-        <td>${log.users?.username || log.user_id}</td>
+        <td>${log.user_id}</td>
         <td>${log.action}</td>
-        <td>${log.doors?.name || log.door_id}</td>
+        <td>${log.door_id}</td>
       </tr>
     `).join("");
 
