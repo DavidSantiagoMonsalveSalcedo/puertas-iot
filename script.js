@@ -102,13 +102,13 @@ async function toggleDoor(doorId, doorDiv) {
       body: JSON.stringify({ status: newStatus })
     });
 
-    // Guardar log en Supabase
+    // Guardar log con UUID
     await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        door_id: Number(doorId),
-        user_id: Number(currentUser),
+        door_id: doorId,             // Número o string según tu tabla doors
+        user_id: currentUser,        // <--- Enviar UUID directamente, sin Number()
         action: newStatus === "abierta" ? "abrir" : "cerrar"
       })
     });
