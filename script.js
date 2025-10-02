@@ -87,55 +87,58 @@ function renderDoors(doors) {
 }
 
 // =============================
-// 📌 Abrir / Cerrar puerta
+// 📌 Abrir / Cerrar puerta con logs seguros
 // =============================
 async function toggleDoor(id, doorDiv) {
   const estadoStrong = doorDiv.querySelector(".door-content p:nth-child(2) strong");
   const currentStatus = estadoStrong.textContent;
   const newStatus = currentStatus === "cerrada" ? "abierta" : "cerrada";
 
+  if (!currentUser) {
+    alert("Selecciona un usuario antes de abrir/cerrar la puerta.");
+    return;
+  }
+
   try {
-    // Actualizar estado en Supabase
+    // Actualizar estado de la puerta
     await fetch(`${SUPABASE_URL}/rest/v1/doors?id=eq.${id}`, {
       method: "PATCH",
       headers,
       body: JSON.stringify({ status: newStatus })
     });
 
-    // Guardar log en logs
-    if (currentUser) {
-      await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          door_id: id,
-          user_id: currentUser,
-          action: newStatus === "abierta" ? "abrir" : "cerrar"
-        })
-      });
-    }
+    // Guardar log en Supabase
+    await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        door_id: Number(id),
+        user_id: Number(currentUser),
+        action: newStatus === "abierta" ? "abrir" : "cerrar"
+      })
+    });
 
     // Actualizar DOM
     estadoStrong.textContent = newStatus;
     doorDiv.querySelector("button").textContent = newStatus === "cerrada" ? "Abrir" : "Cerrar";
 
-    // refrescar historial
+    // Refrescar historial
     fetchLogs();
 
   } catch (error) {
-    console.error("Error al actualizar la puerta:", error);
+    console.error("Error al actualizar la puerta o guardar log:", error);
   }
 }
 
 // =============================
-// 📌 Histórico de accesos (tabla)
+// 📌 Histórico de accesos (tabla segura)
 // =============================
 async function fetchLogs() {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*`, { headers });
     const logs = await res.json();
 
-    console.log(logs); // <-- esto te permite ver los registros en la consola
+    console.log(logs); // Ver registros en consola
 
     const logBody = document.getElementById("log-body");
     logBody.innerHTML = logs.map(log => `
@@ -146,6 +149,7 @@ async function fetchLogs() {
         <td>${log.door_id || "?"}</td>
       </tr>
     `).join("");
+
   } catch (error) {
     console.error("Error al cargar logs:", error);
   }
