@@ -132,17 +132,18 @@ async function toggleDoor(id, doorDiv) {
 // =============================
 async function fetchLogs() {
   try {
-    // Traer solo los logs y las relaciones correctas
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=id,action,created_at,user_id,door_id,users!inner(username),doors!inner(name)&order=created_at.desc`, { headers });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*`, { headers });
     const logs = await res.json();
+
+    console.log(logs); // <-- esto te permite ver los registros en la consola
 
     const logBody = document.getElementById("log-body");
     logBody.innerHTML = logs.map(log => `
       <tr>
         <td>${new Date(log.created_at).toLocaleString()}</td>
-        <td>${log.users?.username || "Desconocido"}</td>
+        <td>${log.user_id || "Desconocido"}</td>
         <td>${log.action}</td>
-        <td>${log.doors?.name || "?"}</td>
+        <td>${log.door_id || "?"}</td>
       </tr>
     `).join("");
   } catch (error) {
