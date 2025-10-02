@@ -1,6 +1,6 @@
 // 🔑 Configuración Supabase
 const SUPABASE_URL = "https://kjauubnikapfyfjhplye.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqYXV1Ym5pa2FwZnlmamhwbHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODA1OTEsImV4cCI6MjA3NDk1NjU5MX0.uJPC3W2GVSXqc6f_AGtUs5TbJGGfhAurDIeS0MsZrUY";
+const SUPABASE_KEY = "TU_SUPABASE_KEY";
 const headers = {
   "apikey": SUPABASE_KEY,
   "Authorization": `Bearer ${SUPABASE_KEY}`,
@@ -14,7 +14,7 @@ window.onload = () => {
   fetchUsers();
   fetchDoors();
   fetchLogs();
-  setInterval(fetchLogs, 5000);
+  setInterval(fetchLogs, 5000); // refrescar cada 5 segundos
 };
 
 // =============================
@@ -39,6 +39,7 @@ async function fetchUsers() {
     userSelect.addEventListener("change", (e) => {
       currentUser = e.target.value;
     });
+
   } catch (error) {
     console.error("Error al cargar usuarios:", error);
   }
@@ -74,7 +75,7 @@ function renderDoors(doors) {
       <button>${door.status === "cerrada" ? "Abrir" : "Cerrar"}</button>
     `;
 
-    div.querySelector("button").addEventListener("click", () => toggleDoor(door.id, door.name, div));
+    div.querySelector("button").addEventListener("click", () => toggleDoor(door.id, div));
 
     container.appendChild(div);
   });
@@ -83,7 +84,7 @@ function renderDoors(doors) {
 // =============================
 // Abrir/Cerrar puerta y guardar log
 // =============================
-async function toggleDoor(doorId, doorName, doorDiv) {
+async function toggleDoor(doorId, doorDiv) {
   const estadoStrong = doorDiv.querySelector(".door-content p:nth-child(2) strong");
   const currentStatus = estadoStrong.textContent;
   const newStatus = currentStatus === "cerrada" ? "abierta" : "cerrada";
@@ -101,7 +102,7 @@ async function toggleDoor(doorId, doorName, doorDiv) {
       body: JSON.stringify({ status: newStatus })
     });
 
-    // Guardar log
+    // Guardar log en Supabase
     await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
       method: "POST",
       headers,
@@ -125,15 +126,13 @@ async function toggleDoor(doorId, doorName, doorDiv) {
 }
 
 // =============================
-// Historial de accesos
+// Historial de accesos (sin joins)
 // =============================
 async function fetchLogs() {
   try {
-    // Traer los últimos 20 logs sin join
     const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*&order=created_at.desc&limit=20`, { headers });
     const logs = await res.json();
 
-    // logs puede ser array, si da error muestra vacío
     if (!Array.isArray(logs)) {
       console.error("Respuesta inesperada de Supabase:", logs);
       return;
