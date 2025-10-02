@@ -1,5 +1,4 @@
-// 🔑 Configuración Supabase
-const SUPABASE_URL = "https://kjauubnikapfyfjhplye.supabase.co"; 
+const SUPABASE_URL = "https://kjauubnikapfyfjhplye.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqYXV1Ym5pa2FwZnlmamhwbHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODA1OTEsImV4cCI6MjA3NDk1NjU5MX0.uJPC3W2GVSXqc6f_AGtUs5TbJGGfhAurDIeS0MsZrUY";
 const headers = {
   "apikey": SUPABASE_KEY,
@@ -7,18 +6,19 @@ const headers = {
   "Content-Type": "application/json"
 };
 
+// Variables globales
 let currentUser = null;
 
-// 🚀 Inicializar
+// 🚀 Cargar usuarios, puertas y logs al inicio
 window.onload = () => {
   fetchUsers();
   fetchDoors();
   fetchLogs();
-  setInterval(fetchLogs, 5000); // refrescar historial cada 5 segundos
+  setInterval(fetchLogs, 5000); // refrescar cada 5 segundos
 };
 
 // =============================
-// Usuarios
+// 📌 Obtener y mostrar usuarios
 // =============================
 async function fetchUsers() {
   try {
@@ -29,8 +29,8 @@ async function fetchUsers() {
     userSelect.innerHTML = "";
     users.forEach(user => {
       const option = document.createElement("option");
-      option.value = user.id; // UUID
-      option.textContent = user.username;
+      option.value = user.id;
+      option.textContent = `${user.username} (${user.role})`;
       userSelect.appendChild(option);
     });
 
@@ -39,13 +39,14 @@ async function fetchUsers() {
     userSelect.addEventListener("change", (e) => {
       currentUser = e.target.value;
     });
+
   } catch (error) {
     console.error("Error al cargar usuarios:", error);
   }
 }
 
 // =============================
-// Puertas
+// 📌 Obtener y mostrar puertas
 // =============================
 async function fetchDoors() {
   try {
@@ -57,6 +58,9 @@ async function fetchDoors() {
   }
 }
 
+// =============================
+// 📌 Renderizar puertas
+// =============================
 function renderDoors(doors) {
   const container = document.getElementById("door-container");
   container.innerHTML = "";
@@ -74,15 +78,17 @@ function renderDoors(doors) {
       <button>${door.status === "cerrada" ? "Abrir" : "Cerrar"}</button>
     `;
 
-    div.querySelector("button").addEventListener("click", () => toggleDoor(door.id, div));
+    const button = div.querySelector("button");
+    button.addEventListener("click", () => toggleDoor(door.id, div));
+
     container.appendChild(div);
   });
 }
 
 // =============================
-// Abrir/Cerrar puerta y guardar log
+// 📌 Abrir / Cerrar puerta con logs seguros
 // =============================
-async function toggleDoor(doorId, doorDiv) {
+async function toggleDoor(id, doorDiv) {
   const estadoStrong = doorDiv.querySelector(".door-content p:nth-child(2) strong");
   const currentStatus = estadoStrong.textContent;
   const newStatus = currentStatus === "cerrada" ? "abierta" : "cerrada";
@@ -94,19 +100,19 @@ async function toggleDoor(doorId, doorDiv) {
 
   try {
     // Actualizar estado de la puerta
-    await fetch(`${SUPABASE_URL}/rest/v1/doors?id=eq.${doorId}`, {
+    await fetch(`${SUPABASE_URL}/rest/v1/doors?id=eq.${id}`, {
       method: "PATCH",
       headers,
       body: JSON.stringify({ status: newStatus })
     });
 
-    // Guardar log
+    // Guardar log en Supabase
     await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        door_id: doorId,         // UUID
-        user_id: currentUser,    // UUID
+        door_id: Number(id),
+        user_id: Number(currentUser),
         action: newStatus === "abierta" ? "abrir" : "cerrar"
       })
     });
@@ -117,33 +123,32 @@ async function toggleDoor(doorId, doorDiv) {
 
     // Refrescar historial
     fetchLogs();
+
   } catch (error) {
-    console.error("Error al actualizar puerta o guardar log:", error);
+    console.error("Error al actualizar la puerta o guardar log:", error);
   }
 }
 
 // =============================
-// Historial de accesos
+// 📌 Histórico de accesos (tabla segura)
 // =============================
 async function fetchLogs() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*&order=timestamp.desc&limit=20`, { headers });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*`, { headers });
     const logs = await res.json();
 
-    if (!Array.isArray(logs)) {
-      console.error("Respuesta inesperada:", logs);
-      return;
-    }
+    console.log(logs); // Ver registros en consola
 
     const logBody = document.getElementById("log-body");
     logBody.innerHTML = logs.map(log => `
       <tr>
-        <td>${new Date(log.timestamp).toLocaleString()}</td>
-        <td>${log.user_id}</td>
+        <td>${new Date(log.created_at).toLocaleString()}</td>
+        <td>${log.user_id || "Desconocido"}</td>
         <td>${log.action}</td>
-        <td>${log.door_id}</td>
+        <td>${log.door_id || "?"}</td>
       </tr>
     `).join("");
+
   } catch (error) {
     console.error("Error al cargar logs:", error);
   }
