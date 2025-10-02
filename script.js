@@ -7,19 +7,18 @@ const headers = {
   "Content-Type": "application/json"
 };
 
-// Variables globales
 let currentUser = null;
 
-// 🚀 Cargar usuarios, puertas y logs al inicio
+// 🚀 Inicializar
 window.onload = () => {
   fetchUsers();
   fetchDoors();
   fetchLogs();
-  setInterval(fetchLogs, 5000); // refrescar cada 5 segundos
+  setInterval(fetchLogs, 5000);
 };
 
 // =============================
-// 📌 Obtener y mostrar usuarios
+// Usuarios
 // =============================
 async function fetchUsers() {
   try {
@@ -40,14 +39,13 @@ async function fetchUsers() {
     userSelect.addEventListener("change", (e) => {
       currentUser = e.target.value;
     });
-
   } catch (error) {
     console.error("Error al cargar usuarios:", error);
   }
 }
 
 // =============================
-// 📌 Obtener y mostrar puertas
+// Puertas
 // =============================
 async function fetchDoors() {
   try {
@@ -59,9 +57,6 @@ async function fetchDoors() {
   }
 }
 
-// =============================
-// 📌 Renderizar puertas
-// =============================
 function renderDoors(doors) {
   const container = document.getElementById("door-container");
   container.innerHTML = "";
@@ -79,17 +74,16 @@ function renderDoors(doors) {
       <button>${door.status === "cerrada" ? "Abrir" : "Cerrar"}</button>
     `;
 
-    const button = div.querySelector("button");
-    button.addEventListener("click", () => toggleDoor(door.id, div));
+    div.querySelector("button").addEventListener("click", () => toggleDoor(door.id, door.name, div));
 
     container.appendChild(div);
   });
 }
 
 // =============================
-// 📌 Abrir / Cerrar puerta con logs seguros
+// Abrir/Cerrar puerta y guardar log
 // =============================
-async function toggleDoor(id, doorDiv) {
+async function toggleDoor(doorId, doorName, doorDiv) {
   const estadoStrong = doorDiv.querySelector(".door-content p:nth-child(2) strong");
   const currentStatus = estadoStrong.textContent;
   const newStatus = currentStatus === "cerrada" ? "abierta" : "cerrada";
@@ -101,18 +95,18 @@ async function toggleDoor(id, doorDiv) {
 
   try {
     // Actualizar estado de la puerta
-    await fetch(`${SUPABASE_URL}/rest/v1/doors?id=eq.${id}`, {
+    await fetch(`${SUPABASE_URL}/rest/v1/doors?id=eq.${doorId}`, {
       method: "PATCH",
       headers,
       body: JSON.stringify({ status: newStatus })
     });
 
-    // Guardar log en Supabase
+    // Guardar log
     await fetch(`${SUPABASE_URL}/rest/v1/logs`, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        door_id: Number(id),
+        door_id: Number(doorId),
         user_id: Number(currentUser),
         action: newStatus === "abierta" ? "abrir" : "cerrar"
       })
@@ -126,27 +120,26 @@ async function toggleDoor(id, doorDiv) {
     fetchLogs();
 
   } catch (error) {
-    console.error("Error al actualizar la puerta o guardar log:", error);
+    console.error("Error al actualizar puerta o guardar log:", error);
   }
 }
 
 // =============================
-// 📌 Histórico de accesos (tabla segura)
+// Historial de accesos
 // =============================
 async function fetchLogs() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*`, { headers });
+    // Traer últimos 20 logs
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/logs?select=*,users!inner(username),doors!inner(name)&order=created_at.desc&limit=20`, { headers });
     const logs = await res.json();
-
-    console.log(logs); // Ver registros en consola
 
     const logBody = document.getElementById("log-body");
     logBody.innerHTML = logs.map(log => `
       <tr>
         <td>${new Date(log.created_at).toLocaleString()}</td>
-        <td>${log.user_id || "Desconocido"}</td>
+        <td>${log.users?.username || log.user_id}</td>
         <td>${log.action}</td>
-        <td>${log.door_id || "?"}</td>
+        <td>${log.doors?.name || log.door_id}</td>
       </tr>
     `).join("");
 
